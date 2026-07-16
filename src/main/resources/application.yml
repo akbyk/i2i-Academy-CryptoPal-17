@@ -2,7 +2,6 @@ spring:
   application:
     name: CryptoPal
 
-  # Configure SQL initialization correctly (schema is for CREATE TABLE, none tells hibernate not to interfere)
   sql:
     init:
       mode: always
@@ -51,7 +50,7 @@ cryptopal:
       - BTC
       - ETH
   binance:
-    base-url: https://api.binance.tr
+    base-url: https://api.binance.com
     symbols:
       - BTCUSDT
       - ETHUSDT
