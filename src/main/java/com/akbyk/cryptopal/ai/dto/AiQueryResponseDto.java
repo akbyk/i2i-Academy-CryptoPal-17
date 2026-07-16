@@ -1,4 +1,4 @@
 package com.akbyk.cryptopal.ai.dto;
 
-public class AiQueryResponseDto {
+public record AiQueryResponseDto(String response, String error) {
 }
