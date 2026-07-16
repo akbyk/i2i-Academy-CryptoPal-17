@@ -1,4 +1,4 @@
-package com.akbyk.cryptopal.common.repository;
+package com.akbyk.cryptopal.common.repository.jpa;
 
 import com.akbyk.cryptopal.common.entity.WalletBalanceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

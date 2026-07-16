@@ -2,7 +2,7 @@ package com.akbyk.cryptopal.market;
 
 
 import com.akbyk.cryptopal.common.entity.PriceTrendLogEntity;
-import com.akbyk.cryptopal.common.repository.PriceTrendLogRepository;
+import com.akbyk.cryptopal.common.repository.jpa.PriceTrendLogRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;

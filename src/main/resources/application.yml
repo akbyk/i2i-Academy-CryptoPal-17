@@ -21,6 +21,12 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+    jpa:
+      repositories:
+        bootstrap-mode: default
+      autoconfigure:
+        exclude:
+          - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 server:
   port: ${SERVER_PORT}
