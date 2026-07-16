@@ -3,6 +3,9 @@ package com.akbyk.cryptopal.common.exception;
 import com.akbyk.cryptopal.auth.DuplicateUserException;
 import com.akbyk.cryptopal.auth.InvalidCredentialsException;
 import com.akbyk.cryptopal.common.dto.ErrorResponseDto;
+import com.akbyk.cryptopal.trading.AssetNotFoundException;
+import com.akbyk.cryptopal.trading.InsufficientFundsException;
+import com.akbyk.cryptopal.trading.InvalidAmountException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,5 +36,23 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest()
                 .body(new ErrorResponseDto("VALIDATION_ERROR", message));
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<ErrorResponseDto> handleInsufficientFunds(InsufficientFundsException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(new ErrorResponseDto("INSUFFICIENT_FUNDS", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidAmountException.class)
+    public ResponseEntity<ErrorResponseDto> handleInvalidAmount(InvalidAmountException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponseDto("INVALID_AMOUNT", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AssetNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleAssetNotFound(AssetNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponseDto("ASSET_NOT_FOUND", ex.getMessage()));
     }
 }

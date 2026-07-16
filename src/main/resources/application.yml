@@ -39,6 +39,8 @@ app:
     gemini:
       api-key: ${GEMINI_API_KEY}
       model: ${GEMINI_MODEL}
+      base-url: https://generativelanguage.googleapis.com
+      timeout-seconds: 10
 
 cryptopal:
   data-source: binance
@@ -56,3 +58,7 @@ cryptopal:
       - ETHUSDT
     connect-timeout-ms: 3000
     read-timeout-ms: 5000
+  ai:
+    context:
+      transaction-limit: 15    # how many recent transactions to feed the model
+      price-trend-points: 24   # how many recent price_trend_log rows per
