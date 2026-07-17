@@ -33,3 +33,4 @@ build/
 .vscode/
 .env.example
 .env
+.cookies.txt
