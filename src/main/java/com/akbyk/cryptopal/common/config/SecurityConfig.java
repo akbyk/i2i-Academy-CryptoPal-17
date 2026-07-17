@@ -26,11 +26,11 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                // Spring Security's own authorization is deliberately left permissive here;
-                // SessionAuthenticationFilter is the actual gatekeeper (see shouldNotFilter
-                // above for the public-path allowlist) and runs before Spring Security's
-                // own UsernamePasswordAuthenticationFilter in the chain below.
+                .authorizeHttpRequests(auth -> auth
+                        // Statik arayüz kaynaklarına Spring Security düzeyinde izin veriyoruz
+                        .requestMatchers("/", "/index.html", "/favicon.ico", "/error").permitAll()
+                        .anyRequest().permitAll()
+                )
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -38,7 +38,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Strength factor 12, per spec §2.1.
         return new BCryptPasswordEncoder(12);
     }
 }
