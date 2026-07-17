@@ -8,9 +8,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      # Sol taraf (.env içindeki POSTGRES_PORT neyse o olur, boşsa varsayılan 5432'ye düşer)
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Eğer db/init.sql içinde hata alırsan bu satırı tamamen devre dışı bırakabilirsin
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - cryptopal-net
@@ -25,7 +27,7 @@ services:
     container_name: cryptopal-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     networks:
       - cryptopal-net
 

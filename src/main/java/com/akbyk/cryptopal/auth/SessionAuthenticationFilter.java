@@ -23,7 +23,12 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/auth/")
+        // Statik web kaynaklarımızı ve hata sayfalarını güvenlik filtresinin dışarısında bırakıyoruz
+        return path.equals("/")
+                || path.equals("/index.html")
+                || path.equals("/favicon.ico")
+                || path.startsWith("/error")
+                || path.startsWith("/api/auth/")
                 || path.startsWith("/swagger-ui")
                 || path.startsWith("/v3/api-docs");
     }
