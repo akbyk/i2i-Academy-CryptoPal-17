@@ -39,7 +39,7 @@ app:
       api-key: ${GEMINI_API_KEY:}
       model: ${GEMINI_MODEL:gemini-flash-lite-latest}
       base-url: https://generativelanguage.googleapis.com
-      timeout-seconds: 15
+      timeout-seconds: 30
 
 cryptopal:
   data-source: binance
