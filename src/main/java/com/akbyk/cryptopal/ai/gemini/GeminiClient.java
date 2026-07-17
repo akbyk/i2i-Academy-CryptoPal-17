@@ -4,6 +4,7 @@ import com.akbyk.cryptopal.ai.gemini.dto.GeminiContent;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiGenerateContentRequest;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiGenerateContentResponse;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiPart;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,13 @@ public class GeminiClient {
     public GeminiClient(WebClient geminiWebClient, GeminiProperties properties) {
         this.geminiWebClient = geminiWebClient;
         this.properties = properties;
+    }
+
+    @PostConstruct
+    public void verifyConfig() {
+        if (properties.getApiKey() == null || properties.getApiKey().isBlank()) {
+            throw new IllegalStateException("Gemini API key is missing from configuration!");
+        }
     }
 
     /**
