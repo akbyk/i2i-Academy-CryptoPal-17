@@ -3,6 +3,7 @@ package com.akbyk.cryptopal.ai.gemini;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiContent;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiGenerateContentRequest;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiGenerateContentResponse;
+import com.akbyk.cryptopal.ai.gemini.dto.GeminiGenerationConfig;
 import com.akbyk.cryptopal.ai.gemini.dto.GeminiPart;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -26,25 +27,10 @@ public class GeminiClient {
         this.properties = properties;
     }
 
-    /**
-     * Returns Optional.empty() on ANY failure (timeout, network error, malformed
-     * response, invalid API key) — callers never see a raw exception or the API key.
-     *
-     * Blocking justification: this app is a classic Spring MVC (servlet) application,
-     * not an end-to-end reactive one. Every other step in the request this method is
-     * called from (fetching wallet balances, transactions, and price_trend_log rows
-     * via Spring Data JPA) is already blocking JDBC I/O on this same servlet thread.
-     * Making only this one call non-blocking would not free the thread for reuse —
-     * it is still pinned by the blocking DB calls immediately before and after it —
-     * so a fully reactive chain here would add complexity with no real concurrency
-     * benefit. A bounded .block(timeout) keeps the method simple to reason about while
-     * still guaranteeing the servlet thread is never held indefinitely: the reactive
-     * .timeout() below fires first during normal operation, and the outer .block()
-     * timeout is a hard backstop in case anything upstream misbehaves.
-     */
     public Optional<String> generateContent(String prompt) {
         GeminiGenerateContentRequest request = new GeminiGenerateContentRequest(
-                List.of(new GeminiContent(List.of(new GeminiPart(prompt)))));
+                List.of(new GeminiContent(List.of(new GeminiPart(prompt)))),
+                new GeminiGenerationConfig(properties.getMaxOutputTokens(), properties.getTemperature()));
 
         try {
             GeminiGenerateContentResponse response = geminiWebClient.post()
@@ -72,8 +58,6 @@ public class GeminiClient {
                     .findFirst();
 
         } catch (Exception ex) {
-            // Final safety net — never let a raw exception (which could include
-            // headers/URL fragments) propagate up to the controller.
             log.error("Unexpected error calling Gemini API", ex);
             return Optional.empty();
         }

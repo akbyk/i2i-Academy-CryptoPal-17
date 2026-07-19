@@ -39,7 +39,9 @@ app:
       api-key: ${GEMINI_API_KEY:}
       model: ${GEMINI_MODEL:gemini-flash-lite-latest}
       base-url: https://generativelanguage.googleapis.com
-      timeout-seconds: 15
+      timeout-seconds: ${GEMINI_TIMEOUT:15}
+      max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:1024}
+      temperature: ${GEMINI_TEMPERATURE:0.3}
 
 cryptopal:
   data-source: binance
@@ -69,3 +71,8 @@ cryptopal:
     context:
       transaction-limit: 15
       price-trend-points: 24
+      history-turns: 6
+      history-ttl-seconds: 1800
+    rate-limit:
+      max-requests: 8
+      window-seconds: 60
