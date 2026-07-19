@@ -1,5 +1,6 @@
 package com.akbyk.cryptopal.common.exception;
 
+import com.akbyk.cryptopal.ai.AiRateLimitExceededException;
 import com.akbyk.cryptopal.auth.DuplicateUserException;
 import com.akbyk.cryptopal.auth.InvalidCredentialsException;
 import com.akbyk.cryptopal.common.dto.ErrorResponseDto;
@@ -54,5 +55,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDto> handleAssetNotFound(AssetNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDto("ASSET_NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AiRateLimitExceededException.class)
+    public ResponseEntity<ErrorResponseDto> handleAiRateLimitExceeded(AiRateLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponseDto("AI_RATE_LIMIT_EXCEEDED", ex.getMessage()));
     }
 }

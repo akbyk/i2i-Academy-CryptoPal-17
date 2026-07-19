@@ -13,5 +13,12 @@ public class GeminiProperties {
     private String model = "gemini-flash-lite-latest";
     private String baseUrl = "https://generativelanguage.googleapis.com";
     private int timeoutSeconds = 30;
+<<<<<<< HEAD
 }
 
+=======
+
+    private int maxOutputTokens = 1024;
+    private double temperature = 0.3;
+}
+>>>>>>> crypto-update

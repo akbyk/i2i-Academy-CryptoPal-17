@@ -7,18 +7,24 @@ import com.akbyk.cryptopal.common.repository.jpa.PriceTrendLogRepository;
 import com.akbyk.cryptopal.common.repository.jpa.TransactionRepository;
 import com.akbyk.cryptopal.common.repository.jpa.WalletBalanceRepository;
 import com.akbyk.cryptopal.market.MarketProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class AiContextService {
 
@@ -27,6 +33,7 @@ public class AiContextService {
     private final PriceTrendLogRepository priceTrendLogRepository;
     private final StringRedisTemplate redisTemplate;
     private final MarketProperties marketProperties;
+    private final ObjectMapper objectMapper;
 
     @Value("${cryptopal.ai.context.transaction-limit:15}")
     private int transactionLimit;
@@ -34,16 +41,24 @@ public class AiContextService {
     @Value("${cryptopal.ai.context.price-trend-points:24}")
     private int priceTrendPoints;
 
+    @Value("${cryptopal.ai.context.history-turns:6}")
+    private int historyTurns;
+
+    @Value("${cryptopal.ai.context.history-ttl-seconds:1800}")
+    private int historyTtlSeconds;
+
     public AiContextService(WalletBalanceRepository walletBalanceRepository,
                             TransactionRepository transactionRepository,
                             PriceTrendLogRepository priceTrendLogRepository,
                             StringRedisTemplate redisTemplate,
-                            MarketProperties marketProperties) {
+                            MarketProperties marketProperties,
+                            ObjectMapper objectMapper) {
         this.walletBalanceRepository = walletBalanceRepository;
         this.transactionRepository = transactionRepository;
         this.priceTrendLogRepository = priceTrendLogRepository;
         this.redisTemplate = redisTemplate;
         this.marketProperties = marketProperties;
+        this.objectMapper = objectMapper;
     }
 
     public String buildContextPrompt(UUID userId, String userMessage) {
@@ -52,7 +67,6 @@ public class AiContextService {
         List<TransactionEntity> recentTransactions = transactionRepository
                 .findByUserIdOrderByExecutedAtDesc(userId, PageRequest.of(0, transactionLimit));
 
-        // Latest price per asset: read from Redis
         Map<String, BigDecimal> latestPrices = new LinkedHashMap<>();
         for (String symbol : marketProperties.getTrackedSymbols()) {
             String raw = redisTemplate.opsForValue().get("price:" + symbol);
@@ -61,7 +75,6 @@ public class AiContextService {
             }
         }
 
-        // Historical price trend: read from Postgres price_trend_log, most recent first.
         Map<String, List<PriceTrendLogEntity>> priceTrends = new LinkedHashMap<>();
         for (String symbol : marketProperties.getTrackedSymbols()) {
             List<PriceTrendLogEntity> points = priceTrendLogRepository
@@ -69,13 +82,51 @@ public class AiContextService {
             priceTrends.put(symbol, points);
         }
 
-        return assemblePrompt(balances, recentTransactions, priceTrends, latestPrices, userMessage);
+        List<AiChatTurn> history = loadHistory(userId);
+
+        return assemblePrompt(balances, recentTransactions, priceTrends, latestPrices, history, userMessage);
+    }
+
+    public void appendHistory(UUID userId, String userMessage, String aiResponse) {
+        List<AiChatTurn> history = loadHistory(userId);
+        history.add(new AiChatTurn(userMessage, aiResponse));
+
+        while (history.size() > historyTurns) {
+            history.remove(0);
+        }
+
+        try {
+            String json = objectMapper.writeValueAsString(history);
+            redisTemplate.opsForValue().set(historyKey(userId), json, Duration.ofSeconds(historyTtlSeconds));
+        } catch (Exception ex) {
+            log.warn("Could not persist AI conversation history for user {}", userId, ex);
+        }
+    }
+
+    private List<AiChatTurn> loadHistory(UUID userId) {
+        String raw = redisTemplate.opsForValue().get(historyKey(userId));
+        if (raw == null || raw.isBlank()) {
+            return new ArrayList<>();
+        }
+        try {
+            List<AiChatTurn> parsed = objectMapper.readValue(raw, new TypeReference<List<AiChatTurn>>() {
+            });
+            return new ArrayList<>(parsed);
+        } catch (Exception ex) {
+            log.warn("Could not parse stored AI conversation history for user {}", userId, ex);
+            return new ArrayList<>();
+        }
+    }
+
+    private String historyKey(UUID userId) {
+        return "ai:history:" + userId;
     }
 
     private String assemblePrompt(List<WalletBalanceEntity> balances,
                                   List<TransactionEntity> recentTransactions,
                                   Map<String, List<PriceTrendLogEntity>> priceTrends,
                                   Map<String, BigDecimal> latestPrices,
+                                  List<AiChatTurn> history,
                                   String userMessage) {
         StringBuilder sb = new StringBuilder();
 
@@ -114,8 +165,19 @@ public class AiContextService {
         latestPrices.forEach((symbol, price) ->
                 sb.append("- ").append(symbol).append(": ").append(price).append("\n"));
 
+        if (!history.isEmpty()) {
+            sb.append("\nCONVERSATION HISTORY (oldest first - for context only, data above is authoritative):\n");
+            for (AiChatTurn turn : history) {
+                sb.append("- User: ").append(turn.userMessage()).append("\n");
+                sb.append("  Assistant: ").append(turn.aiResponse()).append("\n");
+            }
+        }
+
         sb.append("\nUSER QUERY:\n").append(userMessage).append("\n");
 
         return sb.toString();
+    }
+
+    private record AiChatTurn(String userMessage, String aiResponse) {
     }
 }
